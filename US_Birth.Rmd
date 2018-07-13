@@ -1,0 +1,80 @@
+---
+title: "Baby Names by Sex and Mother Ethnic Group"
+author: "Chi Ting Low https://github.com/chitinglow"
+output: html_document
+runtime: shiny
+---
+
+```{r, warning=FALSE, message=FALSE,echo=FALSE}
+library(jsonlite)
+library(lubridate)
+library(ggplot2)
+library(dplyr)
+library(shiny)
+library(DT)
+library(plotly)
+
+
+json_file <- 'https://datahub.io/JohnSnowLabs/baby-names-by-sex-and-mother-ethnic-group/datapackage.json'
+json_data <- fromJSON(paste(readLines(json_file), collapse = ""))
+
+# print all tabular data(if exists any)
+for (i in 1:length(json_data$resources$datahub$type)) {
+  if (json_data$resources$datahub$type[i] == 'derived/csv') {
+    path_to_file = json_data$resources$path[i]
+    Birth <- read.csv(url(path_to_file))
+  }
+}
+
+Birth_data <- cbind(Birth, day = day(Birth$Birth_Year), month = month(Birth$Birth_Year), year = year(Birth$Birth_Year))
+
+Birth_year <- select(Birth_data, year, Gender, Ethnic_Group, Count)
+
+Birth_year$Ethnic_Group <- recode(Birth_year$Ethnic_Group, `ASIAN AND PACI` = 'Asian and Pacific Islander',`ASIAN AND PACIFIC ISLANDER` = 'Asian and Pacific Islander', `BLACK NON HISPANIC` = 'Black Non Hispanic'  , `BLACK NON HISP` = 'Black Non Hispanic', `WHITE NON HISP` = 'White Non Hispanic', `WHITE NON HISPANIC` = 'White Non Hispanic', HISPANIC = 'Hispanic')
+
+renderDataTable({
+  Birth
+})
+
+
+```
+
+# Introduction
+
+The following dataset is the gathered from [Data Hub](https://datahub.io/JohnSnowLabs/baby-names-by-sex-and-mother-ethnic-group). There are 6 columns and 13962 rows in the dataset. For the purpose of the analysis, only *Birth_data*, *year*, *Gender*, *Ethnic_Group* and *Count* was selected. The data contains the birth of the baby from 2011-11-08 to 2014-11-08. The count of the baby birth is collected every 11-08 and it represented frequency the name of the baby named from diffrent gender and ethnic group. The analysis shows that there
+were total 7139 female and 6823 male were born from 2011-2014. Among that, there were 2310 Asian and Pacific Islander, 2627 Black Non Hispanic, 4254 Hispanic and 4771 White Non Hispanic. 
+
+
+```{r, warning=FALSE, message=FALSE,echo=FALSE}
+
+renderPlotly({
+  
+  ggplotly(ggplot(Birth_year, aes(x = year, y = Count, fill = Gender)) + 
+  geom_bar(stat = 'identity', position = 'dodge') +
+  labs(title = 'Number of Birth by Gender from 2011 to 2014', x = 'Year', y = 'Count') + 
+  theme_bw() +
+  scale_fill_brewer(palette = "Set1"))
+})
+
+renderPlotly({
+  
+  ggplotly(ggplot(Birth_year, aes(x = year, y = Count, fill = Ethnic_Group)) + 
+  geom_bar(stat = 'identity', position = 'dodge') +
+  labs(title = 'Number of Birth by Ethnic Group from 2011 to 2014', x = 'Year', y = 'Count') + 
+  guides(fill = guide_legend(title = "Ethnic Group")) +
+  scale_fill_brewer(palette = "Set1"))
+})
+
+
+renderPlotly({
+  
+  ggplotly(ggplot(Birth_year, aes(x = Ethnic_Group, y = Count, fill = Gender)) + 
+  geom_bar(stat = 'identity', position = 'dodge') +
+  labs(title = 'Number of Birth by Gender and Ethinic Group from 2011 to 2014', x = 'Ethnic Group', y = 'Count') + 
+  theme_bw() +
+  scale_fill_brewer(palette = "Set1"))
+})
+
+```
+
+As presented in the bar chart, it shows that more male is born but graduatly decrease from 2011 to 2014, it was opposited compared to female. As comparison, there is a decreasing of hispanic baby born from 2011 to 2014. However, in total hispanic has the most baby born from 2011 to 2014. 
